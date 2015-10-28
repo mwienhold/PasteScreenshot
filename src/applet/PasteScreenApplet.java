@@ -14,8 +14,6 @@ import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Base64;
 
 import javax.imageio.ImageIO;
@@ -28,10 +26,10 @@ public class PasteScreenApplet extends Applet {
     public static final int updateDelay = 20; 
     
     protected Image image;
-    protected Image original;
+    protected BufferedImage bImage;
 
     public PasteScreenApplet() {   
-        // Set up window    
+    	
         super();
         
         addMouseListener(new MouseListener() {
@@ -62,7 +60,7 @@ public class PasteScreenApplet extends Applet {
 		        }
 		        
 		        image = buf.getScaledInstance(windowWidth, windowHeight, Image.SCALE_SMOOTH);
-		        original = buf;
+		        bImage = buf;
 		        
 		        SwingUtilities.invokeLater(new Runnable() {
 		            public void run() {
@@ -70,76 +68,58 @@ public class PasteScreenApplet extends Applet {
 		                repaint();
 		            }
 		        });
-		        
-		        byte[] imageInByte = null;
-		        
-		        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		        try {
-					ImageIO.write( buf, "jpg", baos );
-			        baos.flush();
-			        imageInByte = baos.toByteArray();
-			        baos.close();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-
-		        // get the base 64 string
-		        Base64.Encoder b64enc = Base64.getEncoder();
-		        
-		        Base64.Encoder b64nowrap = b64enc.withoutPadding();
-		        String imageString = b64nowrap.encodeToString(imageInByte);
-		        
-		        try {
-			        getAppletContext().showDocument(
-			        	new URL("javascript:storeToField(\"" + imageString +"\")")
-			        );
-		        }
-			    catch (MalformedURLException ex) {
-			    	ex.printStackTrace();
-			    }
 			}
 		});
-    }   
+    }
+    
+    public String getImageDataString() {
+
+        byte[] imageInByte = null;
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+			ImageIO.write( bImage, "jpg", baos );
+	        baos.flush();
+	        imageInByte = baos.toByteArray();
+	        baos.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+
+        // get the base 64 string
+        Base64.Encoder b64enc = Base64.getEncoder();
+        
+        Base64.Encoder b64nowrap = b64enc.withoutPadding();
+        String imageString = b64nowrap.encodeToString(imageInByte);
+        
+        return imageString;
+    }
 
     /**
      * Get an image off the system clipboard.
      * 
      * @return Returns an Image if successful; otherwise returns null.
      */
-    public BufferedImage getImageFromClipboard()
-    {
-      Clipboard cb = (Clipboard) Toolkit.getDefaultToolkit().getSystemClipboard();
-      if (cb != null)
-      {
-        try
-        {
-          BufferedImage image = (BufferedImage)cb.getData(DataFlavor.imageFlavor);
-          return image;
-        }
-        catch (UnsupportedFlavorException e)
-        {
-          // handle this as desired
-          System.out.println("No suitable data in clipboard");;
-        }
-        catch (IOException e)
-        {
-          // handle this as desired
-          e.printStackTrace();
-        }
-      }
-      else
-      {
-        System.err.println("getImageFromClipboard: That wasn't an image!");
-      }
-      return null;
-    }
-    
-    private double determineImageScale(int sourceWidth, int sourceHeight, int targetWidth, int targetHeight) {
-    	double scalex = (double) targetWidth / sourceWidth;
-    	double scaley = (double) targetHeight / sourceHeight;
+    protected BufferedImage getImageFromClipboard() {
+
+    	Clipboard cb = (Clipboard) Toolkit.getDefaultToolkit().getSystemClipboard();
+
+    	if (cb != null)
+    	{
+    		try
+    		{
+    			BufferedImage image = (BufferedImage)cb.getData(DataFlavor.imageFlavor);
+    			return image;
+    		}
+    		catch (UnsupportedFlavorException e)
+    		{
+    			System.out.println("No suitable data in clipboard");
+    		} catch (IOException e) {
+    			System.out.println("Can't read clipboard data");
+			}
+    	}
     	
-    	return Math.min(scalex, scaley);
+    	return null;
     }
 
     public void paint(Graphics g) {
